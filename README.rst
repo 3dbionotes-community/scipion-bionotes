@@ -1,6 +1,6 @@
-=======================
+=========================
 Scipion 3DBionotes plugin
-=======================
+=========================
 
 This is a **3DBionotes** plugin for **scipion**
 

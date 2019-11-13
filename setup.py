@@ -24,7 +24,7 @@ with open('requirements.txt') as f:
 # Fields marked as "Optional" may be commented out.
 
 setup(
-    name='scipion-bionotes',  # Required
+    name='scipion-em-bionotes',  # Required
     version='0.1',  # Required
     description='Scipion 3DBionotes plugin.',  # Required
     long_description=long_description,  # Optional
