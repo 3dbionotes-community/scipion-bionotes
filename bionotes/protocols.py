@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # **************************************************************************
 # *
-# * Authors:     you (you@yourinstitution.email)
+# * Authors:     jrmacias (jr.macias@cnb.csic.es)
 # *
-# * your institution
+# * Biocomputing Unit, CNB-CSIC
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address 'you@yourinstitution.email'
+# *  e-mail address 'jr.macias@cnb.csic.es'
 # *
 # **************************************************************************
 from pyworkflow.object import Integer
@@ -33,10 +33,11 @@ Describe your python module here:
 This module will provide the traditional Hello world example
 """
 
-class MyPluginPrefixHelloWorld(Protocol):
-    """ This protocol will print hello world in the console
-     IMPORTANT: Classes names should be unique, better prefix them"""
-    _label = 'Hello world'
+class BionotesProtocol(Protocol):
+    """
+    This protocol will send EM volumes and PDB models to 3DBionotes for viewing
+    """
+    _label = '3DBionotes'
 
     # -------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):

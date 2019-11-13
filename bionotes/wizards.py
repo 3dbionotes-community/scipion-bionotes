@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # **************************************************************************
 # *
-# * Authors:     you (you@yourinstitution.email)
+# * Authors:     jrmacias (jr.macias@cnb.csic.es)
 # *
-# * your institution
+# * Biocomputing Unit, CNB-CSIC
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -21,36 +21,34 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address 'you@yourinstitution.email'
+# *  e-mail address 'jr.macias@cnb.csic.es'
 # *
 # **************************************************************************
 
 from pyworkflow.em import ListTreeProviderString, String
 import pyworkflow.gui.dialog as dialog
 
-from myplugin.protocols import MyPluginPrefixHelloWorld
+from bionotes.protocols import BionotesProtocol
 from pyworkflow.wizard import Wizard
 
 
-class MyPluginPrefixHelloWorldWizard(Wizard):
+class BionotesWizard(Wizard):
     # Dictionary to target protocol parameters
-    _targets = [(MyPluginPrefixHelloWorld, ['message'])]
+    _targets = [(Bionotes, ['message'])]
 
     def show(self, form, *params):
 
-        # This are the greetings:
-        greetings = [String("Hello world"), String("Hola mundo"),
-                     String("Bonjour le monde"), String("Hallo Welt"),
-                     String("Kon'nichiwa sekai"), String("Nǐ hǎo, shìjiè"),
-                     String("Ciao mondo"), String("Hallo Wereld"),
-                     String("Privet, mir")]
+        # This are the options:
+        options = [String("Send volume map"),
+                     String("Send pdb model"),
+                     String("Send all")]
 
-        # Get a data provider from the greetings to be used in the tree (dialog)
-        provider = ListTreeProviderString(greetings)
+        # Get a data provider to be used in the tree (dialog)
+        provider = ListTreeProviderString(options)
 
         # Show the dialog
-        dlg = dialog.ListDialog(form.root, "Greetings from the world", provider,
-                                "Select one of the greetings)")
+        dlg = dialog.ListDialog(form.root, "Send models to 3DBionotes", provider,
+                                "Select one of the options)")
 
         # Set the chosen value back to the form
         form.setVar('message', dlg.values[0].get())

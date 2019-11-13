@@ -35,6 +35,6 @@ setup(
     packages=find_packages(),
     install_requires=[requirements],
     package_data={  # Optional
-       'bionotes_plugin': ['icon.png', 'protocols.conf'],
+       'bionotes': ['icon.png', 'protocols.conf'],
     }
 )

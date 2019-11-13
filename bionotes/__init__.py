@@ -20,14 +20,14 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address 'scipion@cnb.csic.es'
+# *  e-mail address 'jr.macias@cnb.csic.es'
 # *
 # **************************************************************************
 
 import pyworkflow.em
 
 _logo = "icon.png"
-_references = ['you2019']
+_references = ['Segura2019']
 
 class Plugin(pyworkflow.em.Plugin):
     pass

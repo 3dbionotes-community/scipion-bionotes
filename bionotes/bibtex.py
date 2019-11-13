@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # **************************************************************************
 # *
-# * Authors:     you (you@yourinstitution.email)
+# * Authors:     jrmacias (jr.macias@cnb.csic.es)
 # *
-# * your institution
+# * Biocomputing Unit, CNB-CSIC
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
@@ -21,23 +21,23 @@
 # * 02111-1307  USA
 # *
 # *  All comments concerning this program package may be sent to the
-# *  e-mail address 'scipion@cnb.csic.es'
+# *  e-mail address 'jr.macias@cnb.csic.es'
 # *
 # **************************************************************************
 
 """
-@article{you2019,
-title = "Title of your paper ",
-journal = "...",
-volume = "...",
-number = ".",
-pages = "1 - 6",
+@article{Segura2019,
+title = "3DBIONOTES v3.0: crossing molecular and structural biology data with genomic variations.",
+journal = "Bioinformatics",
+volume = "35",
+number = "18",
+pages = "3512-3513",
 year = "2019",
-issn = "0000-1111",
-doi = "http://dx.doi.org/xxxxx/xxxxx",
+issn = "1460-2059",
+doi = "http://dx.doi.org/10.1093/bioinformatics/btz118",
 url = "http://www.url",
-author = "you and your team",
-keywords = "Single particle analysis Tomography",
+author = "Joan Segura, Ruben Sanchez-Garcia, C O S Sorzano, J M Carazo",
+keywords = "Web framework 3DBIONOTES structural annotations viewer",
 }
 
 """
