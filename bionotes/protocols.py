@@ -24,7 +24,7 @@
 # *  e-mail address 'jr.macias@cnb.csic.es'
 # *
 # **************************************************************************
-from pyworkflow.object import Integer
+from pyworkflow.object import String
 from pyworkflow.protocol import Protocol, params
 from pyworkflow.utils.properties import Message
 
@@ -37,7 +37,7 @@ class BionotesProtocol(Protocol):
     """
     This protocol will send EM volumes and PDB models to 3DBionotes for viewing
     """
-    _label = '3DBionotes'
+    _label = 'Viewer'
 
     # -------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
@@ -47,39 +47,46 @@ class BionotesProtocol(Protocol):
         """
         # You need a params to belong to a section:
         form.addSection(label=Message.LABEL_INPUT)
-        form.addParam('message', params.StringParam,
-                      default='Hello world!',
-                      label='Message', important=True,
-                      help='What will be printed in the console.')
+        form.addParam('inputVolume', params.PointerParam, pointerClass="Volume",
+                      label='Input Volume', allowsNull=True, important=True,
+                      help='Volume to be sent to 3DBionotes')
 
-        form.addParam('times', params.IntParam,
-                      default=10,
-                      label='Times', important=True,
-                      help='Times the message will be printed.')
-
-        form.addParam('previousCount', params.IntParam,
-                      default=0,
-                      allowsNull=True,
-                      label='Previous count',
-                      help='Previous count of printed messages',
-                      allowsPointers=True)
+        form.addParam('atomStructure', params.PointerParam, pointerClass="AtomStruct",
+                     label='Atomic structure', important=True, allowsNull=True,
+                      help='Atomic structure to be sent to 3DBionotes')
+        
     # --------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
         # Insert processing steps
-        self._insertFunctionStep('greetingsStep')
-        self._insertFunctionStep('createOutputStep')
+        self._insertFunctionStep('queryBionotesStep')
 
-    def greetingsStep(self):
-        # say what the parameter says!!
+    def queryBionotesStep(self):
+        """"
+        Query 3DBionotes WS: POST ...
+        """
 
-        for time in range(0, self.times.get()):
-            print(self.message)
+        # POST de atomStructure
+        pdbModel = self.atomStructure.get()
+        pdbModelFileName = atomStructure.getFileName()
+        # 3DBionotes will return a UUID
+        # UUID = request(...)
+        # ...
+        self.atomStructureId = String("2d753e73-217b-4fd4-b3bb-1731e131447c")
 
-    def createOutputStep(self):
-        # register how many times the message has been printed
-        # Now count will be an accumulated value
-        timesPrinted = Integer(self.times.get() + self.previousCount.get())
-        self._defineOutputs(count=timesPrinted)
+        #POST volume
+        volumeMap = self.inputVolume.get()
+        volumeMapFileName = volume.getFileName()
+        # 3DBionotes will return a UUID
+        # UUID = request(...)
+        # ...
+        self.volumeId = String("1fd5d9a1-986e-406d-9b4b-36b1e723fa07")
+        
+        # persist param values
+        self._store()
+
+    def getResultsUrl(self):
+
+        return "https://3dbionotes.cnb.csic.es/ws/submit?volmap=%s&pdbstruct=%s" % (self.volumeId, self.atomStructureId)
 
     # --------------------------- INFO functions -----------------------------------
     def _summary(self):
@@ -88,7 +95,7 @@ class BionotesProtocol(Protocol):
 
         if self.isFinished():
 
-            summary.append("This protocol has printed *%s* %i times." % (self.message, self.times))
+            summary.append("You can view results directly in 3DBionotes at %s" % self.getResultsUrl())
         return summary
 
     def _methods(self):
