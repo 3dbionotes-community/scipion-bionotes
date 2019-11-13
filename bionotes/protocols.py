@@ -27,11 +27,19 @@
 from pyworkflow.object import String
 from pyworkflow.protocol import Protocol, params
 from pyworkflow.utils.properties import Message
+import requests
 
 """
 Describe your python module here:
 This module will provide the traditional Hello world example
 """
+
+
+WEBAPP_ROOT_URL = 'https://3dbionotes.cnb.csic.es/ws/upload/'
+WS_ROOT_URL = "https://3dbionotes.cnb.csic.es/ws/pond/"
+API_KEY = "1731e131-b3bb-4fd4-217b-2d753e73447c"
+HEADERS = {"API-Token": API_KEY}
+
 
 class BionotesProtocol(Protocol):
     """
@@ -65,28 +73,32 @@ class BionotesProtocol(Protocol):
         Query 3DBionotes WS: POST ...
         """
 
-        # POST de atomStructure
+        # POST atomStructure
         pdbModel = self.atomStructure.get()
-        pdbModelFileName = atomStructure.getFileName()
+        atomStructureFileName = pdbModel.getFileName()
         # 3DBionotes will return a UUID
-        # UUID = request(...)
-        # ...
-        self.atomStructureId = String("2d753e73-217b-4fd4-b3bb-1731e131447c")
+        url = WS_ROOT_URL + 'pdbs/'
+        atomStructureFile = {'file': open(atomStructureFileName ,'rb')}
+        response = requests.post(url, files=atomStructureFile, headers=HEADERS)
+        uuid = response.text
+        self.atomStructureId = String(uuid)
 
-        #POST volume
+        #POST volumeMap
         volumeMap = self.inputVolume.get()
-        volumeMapFileName = volume.getFileName()
+        volumeMapFileName = volumeMap.getFileName()
         # 3DBionotes will return a UUID
-        # UUID = request(...)
-        # ...
-        self.volumeId = String("1fd5d9a1-986e-406d-9b4b-36b1e723fa07")
+        url = WS_ROOT_URL + 'maps/'
+        volumeMapFile = {'file': open(atomStructureFileName ,'rb')}
+        response = requests.post(url, files=volumeMapFile, headers=HEADERS)
+        uuid = response.text
+        self.volumeMapId = String(uuid)
         
         # persist param values
         self._store()
 
     def getResultsUrl(self):
 
-        return "https://3dbionotes.cnb.csic.es/ws/submit?volmap=%s&pdbstruct=%s" % (self.volumeId, self.atomStructureId)
+        return WEBAPP_ROOT_URL + "?volmap=%s&model=%s" % (self.volumeMapId, self.atomStructureId)
 
     # --------------------------- INFO functions -----------------------------------
     def _summary(self):
