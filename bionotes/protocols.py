@@ -35,8 +35,8 @@ This module will provide the traditional Hello world example
 """
 
 
-WEBAPP_ROOT_URL = 'https://3dbionotes.cnb.csic.es/ws/upload/'
-WS_ROOT_URL = "https://3dbionotes.cnb.csic.es/ws/pond/"
+WEBAPP_ROOT_URL = 'https://3dbionotes.cnb.csic.es/ws/submit'
+WS_ROOT_URL = "http://campins:8700/"
 API_KEY = "1731e131-b3bb-4fd4-217b-2d753e73447c"
 HEADERS = {"API-Token": API_KEY}
 
@@ -55,8 +55,8 @@ class BionotesProtocol(Protocol):
         """
         # You need a params to belong to a section:
         form.addSection(label=Message.LABEL_INPUT)
-        form.addParam('inputVolume', params.PointerParam, pointerClass="Volume",
-                      label='Input Volume', allowsNull=True, important=True,
+        form.addParam('emVolume', params.PointerParam, pointerClass="Volume",
+                      label='EM Volume', allowsNull=True, important=True,
                       help='Volume to be sent to 3DBionotes')
 
         form.addParam('atomStructure', params.PointerParam, pointerClass="AtomStruct",
@@ -73,32 +73,50 @@ class BionotesProtocol(Protocol):
         Query 3DBionotes WS: POST ...
         """
 
-        # POST atomStructure
-        pdbModel = self.atomStructure.get()
-        atomStructureFileName = pdbModel.getFileName()
-        # 3DBionotes will return a UUID
-        url = WS_ROOT_URL + 'pdbs/'
-        atomStructureFile = {'file': open(atomStructureFileName ,'rb')}
-        response = requests.post(url, files=atomStructureFile, headers=HEADERS)
-        uuid = response.text
-        self.atomStructureId = String(uuid)
+        self.volumeMapId = String("")
+        self.atomStructureId = String("")
 
         #POST volumeMap
-        volumeMap = self.inputVolume.get()
-        volumeMapFileName = volumeMap.getFileName()
-        # 3DBionotes will return a UUID
-        url = WS_ROOT_URL + 'maps/'
-        volumeMapFile = {'file': open(atomStructureFileName ,'rb')}
-        response = requests.post(url, files=volumeMapFile, headers=HEADERS)
-        uuid = response.text
-        self.volumeMapId = String(uuid)
+        if self.emVolume.get():
+            volumeMap = self.emVolume.get()
+            volumeMapFileName = volumeMap.getLocation()
+            # 3DBionotes will return a UUID
+            vmFile = {'file': open(atomStructureFileName ,'rb')}
+            resp = requests.post(WS_ROOT_URL + 'maps/', files=vmFile, headers=HEADERS)
+            if resp.status_code == '200':
+                self.volumeMapId = String(resp.text)
+        # self.volumeMapId = String("31c0b23b-150a-490e-a20c-9d51374ab057")
+        
+        # POST atomStructure
+        if self.atomStructure:
+            pdbModel = self.atomStructure.get()
+            atomStructureFileName = pdbModel.getFileName()
+            # 3DBionotes will return a UUID
+            url = WS_ROOT_URL + 'pdbs/'
+            atomStructureFile = {'file': open(atomStructureFileName ,'rb')}
+            resp = requests.post(url, files=atomStructureFile, headers=HEADERS)
+            if resp.status_code == '200':
+                self.atomStructureId = String(resp.text)
+        # self.atomStructureId = String("cca40913-7079-408d-a84b-2c745d64b903")
         
         # persist param values
         self._store()
 
     def getResultsUrl(self):
 
-        return WEBAPP_ROOT_URL + "?volmap=%s&model=%s" % (self.volumeMapId, self.atomStructureId)
+        url = ""
+        if self.volumeMapId != "":
+            url += WEBAPP_ROOT_URL +"?"
+            url += "volume_id=%s" % (self.volumeMapId)
+            
+        if self.atomStructureId != "":
+            if self.volumeMapId != "":
+                url += "&"
+            else:
+                url += WEBAPP_ROOT_URL +"?"
+            url += "structure_id=%s" % (self.atomStructureId)
+
+        return url
 
     # --------------------------- INFO functions -----------------------------------
     def _summary(self):
@@ -107,7 +125,11 @@ class BionotesProtocol(Protocol):
 
         if self.isFinished():
 
-            summary.append("You can view results directly in 3DBionotes at %s" % self.getResultsUrl())
+            url = self.getResultsUrl()
+            if url == "":
+                summary.append("ERROR: Couldn't connect to 3DBionotes server %s" % WEBAPP_ROOT_URL)
+            else:
+                summary.append("You can view results directly in 3DBionotes at %s" % url)
         return summary
 
     def _methods(self):
