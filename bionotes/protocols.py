@@ -28,6 +28,7 @@ from pyworkflow.object import String
 from pyworkflow.protocol import Protocol, params
 from pyworkflow.utils.properties import Message
 import requests
+import json
 
 """
 Describe your python module here:
@@ -36,9 +37,12 @@ This module will provide the traditional Hello world example
 
 
 WEBAPP_ROOT_URL = 'https://3dbionotes.cnb.csic.es/ws/submit'
-WS_ROOT_URL = "http://campins:8700/"
+# WS_ROOT_URL = "http://campins:8700/"
+# WS_ROOT_URL = "http://rinchen-dos:8700/"
+WS_ROOT_URL = "http://localhost:8000/"
+
 API_KEY = "1731e131-b3bb-4fd4-217b-2d753e73447c"
-HEADERS = {"API-Token": API_KEY}
+SENDER = "Scipion-EM-Bionotes"
 
 
 class BionotesProtocol(Protocol):
@@ -79,24 +83,52 @@ class BionotesProtocol(Protocol):
         #POST volumeMap
         if self.emVolume.get():
             volumeMap = self.emVolume.get()
-            volumeMapFileName = volumeMap.getLocation()
+            vmFileName = volumeMap.getFileName()
+            vmFile = open(vmFileName ,'rb')
+            if vmFileName.endswith("map"):
+                # compress file
+                gzFileName = vmFileName + '.gz'
+                import gzip
+                with open(vmFileName, 'rb') as f_in, gzip.open(gzFileName, 'wb') as f_out:
+                    f_out.write(f_in.read())
+                vmFile = open(gzFileName ,'rb')
             # 3DBionotes will return a UUID
-            vmFile = {'file': open(atomStructureFileName ,'rb')}
-            resp = requests.post(WS_ROOT_URL + 'maps/', files=vmFile, headers=HEADERS)
-            if resp.status_code == '200':
-                self.volumeMapId = String(resp.text)
+            resp = requests.post(WS_ROOT_URL + 'maps/', files={'file': vmFile},
+                                headers={"API-Token": API_KEY, 
+                                        "UAgent": SENDER,
+                                        "Title": vmFileName})
+            vmFile.close()
+            if resp.status_code == 201:
+                uuid = resp.json()['unique_id']
+                self.volumeMapId = String(uuid)
+            else:
+                raise Exception("HTTP Code:",resp.status_code, resp.reason)
         # self.volumeMapId = String("31c0b23b-150a-490e-a20c-9d51374ab057")
         
         # POST atomStructure
-        if self.atomStructure:
+        if self.atomStructure.get():
             pdbModel = self.atomStructure.get()
-            atomStructureFileName = pdbModel.getFileName()
+            asFileName = pdbModel.getFileName()
+            assert asFileName.endswith('.cif')
+            asFile = open(asFileName ,'rb')
+            
+            # compress file
+            gzFileName = asFileName + '.gz'
+            import gzip
+            with open(asFileName, 'rb') as f_in, gzip.open(gzFileName, 'wb') as f_out:
+                f_out.write(f_in.read())
+            asFile = open(gzFileName ,'rb')
             # 3DBionotes will return a UUID
-            url = WS_ROOT_URL + 'pdbs/'
-            atomStructureFile = {'file': open(atomStructureFileName ,'rb')}
-            resp = requests.post(url, files=atomStructureFile, headers=HEADERS)
-            if resp.status_code == '200':
-                self.atomStructureId = String(resp.text)
+            resp = requests.post(WS_ROOT_URL + 'pdbs/', files={'file': asFile}, 
+                                headers={"API-Token": API_KEY, 
+                                        "UAgent": SENDER,
+                                        "Title": asFileName})
+            asFile.close()
+            if resp.status_code == 201:
+                uuid = resp.json()['unique_id']
+                self.atomStructureId = String(uuid)
+            else:
+                raise Exception("HTTP Code:",resp.status_code, resp.reason, resp.url)
         # self.atomStructureId = String("cca40913-7079-408d-a84b-2c745d64b903")
         
         # persist param values
