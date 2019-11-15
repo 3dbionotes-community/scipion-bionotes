@@ -29,7 +29,23 @@ import pyworkflow.em
 _logo = "icon.png"
 _references = ['Segura2019']
 
+
 class Plugin(pyworkflow.em.Plugin):
-    pass
+
+    @classmethod
+    def _defineVariables(cls):
+        cls._defineVar(
+            'BIONOTES_WEB_ROOT_URL',
+            "https://3dbionotes.cnb.csic.es/ws/submit")
+        cls._defineVar(
+            'BIONOTES_WS_ROOT_URL',
+            "http://3dbionotes.cnb.csic.es/ws/")
+        cls._defineVar(
+            'SENDER',
+            "Scipion-EM-Bionotes")
+        cls._defineVar(
+            'API_KEY',
+            "1731e131-b3bb-4fd4-217b-2d753e73447c")
+
 
 pyworkflow.em.Domain.registerPlugin(__name__)

@@ -27,22 +27,16 @@
 from pyworkflow.object import String
 from pyworkflow.protocol import Protocol, params
 from pyworkflow.utils.properties import Message
+from bionotes import Plugin
 import requests
 import json
+import gzip
+
 
 """
 Describe your python module here:
 This module will provide the traditional Hello world example
 """
-
-
-WEBAPP_ROOT_URL = 'https://3dbionotes.cnb.csic.es/ws/submit'
-# WS_ROOT_URL = "http://campins:8700/"
-# WS_ROOT_URL = "http://rinchen-dos:8700/"
-WS_ROOT_URL = "http://localhost:8000/"
-
-API_KEY = "1731e131-b3bb-4fd4-217b-2d753e73447c"
-SENDER = "Scipion-EM-Bionotes"
 
 
 class BionotesProtocol(Protocol):
@@ -69,16 +63,17 @@ class BionotesProtocol(Protocol):
                       allowsNull=True,
                       help='Atomic structure to be sent to 3DBionotes')
 
-    # --------------------------- STEPS functions ------------------------------
+    # --------------------------- STEPS functions -----------------------------
     def _insertAllSteps(self):
         # Insert processing steps
         self._insertFunctionStep('queryBionotesStep')
 
     def queryBionotesStep(self):
         """"
-        Query 3DBionotes WS: POST ...
+        Send structure files to 3DBionotes WS
+        A POST query is sent for every file. 3DBionotes will return a UUID
+        that would be used to show the file in the 3D viewer.
         """
-
         self.volumeMapId = String("")
         self.atomStructureId = String("")
 
@@ -91,21 +86,24 @@ class BionotesProtocol(Protocol):
                 # compress file
                 gzFileName = vmFileName + '.gz'
                 import gzip
-                with open(vmFileName, 'rb') as f_in, gzip.open(gzFileName, 'wb') as f_out:
-                    f_out.write(f_in.read())
+                with open(vmFileName, 'rb') as f_in:
+                    with gzip.open(gzFileName, 'wb') as f_out:
+                        f_out.write(f_in.read())
+                # reopen gziped file for sending
                 vmFile = open(gzFileName, 'rb')
             # 3DBionotes will return a UUID
-            resp = requests.post(WS_ROOT_URL + 'maps/', files={'file': vmFile},
-                                 headers={"API-Token": API_KEY,
-                                          "UAgent": SENDER,
-                                          "Title": vmFileName})
+            resp = requests.post(Plugin.getVar('BIONOTES_WS_ROOT_URL')+'maps/',
+                                 files={'file': vmFile},
+                                 headers={
+                                     "API-Token": Plugin.getVar('API_KEY'),
+                                     "Sender": Plugin.getVar('SENDER'),
+                                     "Title": os.path.basename(vmFileName)})
             vmFile.close()
             if resp.status_code == 201:
                 uuid = resp.json()['unique_id']
                 self.volumeMapId = String(uuid)
             else:
-                raise Exception("HTTP Code:", resp.status_code, resp.reason)
-        # self.volumeMapId = String("31c0b23b-150a-490e-a20c-9d51374ab057")
+                raise Exception(resp.status_code, resp.reason, resp.url)
 
         # POST atomStructure
         if self.atomStructure.get():
@@ -116,22 +114,25 @@ class BionotesProtocol(Protocol):
 
             # compress file
             gzFileName = asFileName + '.gz'
-            import gzip
-            with open(asFileName, 'rb') as f_in, gzip.open(gzFileName, 'wb') as f_out:
-                f_out.write(f_in.read())
+
+            with open(asFileName, 'rb') as f_in:
+                with gzip.open(gzFileName, 'wb') as f_out:
+                    f_out.write(f_in.read())
+            # reopen gziped file for sending
             asFile = open(gzFileName, 'rb')
             # 3DBionotes will return a UUID
-            resp = requests.post(WS_ROOT_URL + 'pdbs/', files={'file': asFile},
-                                 headers={"API-Token": API_KEY,
-                                 "UAgent": SENDER,
-                                 "Title": asFileName})
+            resp = requests.post(Plugin.getVar('BIONOTES_WS_ROOT_URL')+'pdbs/',
+                                 files={'file': asFile},
+                                 headers={
+                                    "API-Token": Plugin.getVar('API_KEY'),
+                                    "Sender":  Plugin.getVar('SENDER'),
+                                    "Title": os.path.basename(asFileName)})
             asFile.close()
             if resp.status_code == 201:
                 uuid = resp.json()['unique_id']
                 self.atomStructureId = String(uuid)
             else:
-                raise Exception("HTTP Code:", resp.status_code, resp.reason, resp.url)
-        # self.atomStructureId = String("cca40913-7079-408d-a84b-2c745d64b903")
+                raise Exception(resp.status_code, resp.reason, resp.url)
 
         # persist param values
         self._store()
@@ -140,19 +141,19 @@ class BionotesProtocol(Protocol):
 
         url = ""
         if self.volumeMapId != "":
-            url += WEBAPP_ROOT_URL + "?"
+            url += Plugin.getVar('BIONOTES_WEB_ROOT_URL') + "?"
             url += "volume_id=%s" % (self.volumeMapId)
 
         if self.atomStructureId != "":
             if self.volumeMapId != "":
                 url += "&"
             else:
-                url += WEBAPP_ROOT_URL + "?"
+                url += Plugin.getVar('BIONOTES_WEB_ROOT_URL') + "?"
             url += "structure_id=%s" % (self.atomStructureId)
 
         return url
 
-    # --------------------------- INFO functions -----------------------------------
+    # --------------------------- INFO functions ------------------------------
     def _summary(self):
         """ Summarize what the protocol has done"""
         summary = []
@@ -161,16 +162,21 @@ class BionotesProtocol(Protocol):
 
             url = self.getResultsUrl()
             if url == "":
-                summary.append("ERROR: Couldn't connect to 3DBionotes server %s" % WEBAPP_ROOT_URL)
+                summary.append(
+                    "ERROR: Couldn't connect to 3DBionotes server %s" %
+                    Plugin.getVar('BIONOTES_WEB_ROOT_URL'))
             else:
-                summary.append("You can view results directly in 3DBionotes at %s" % url)
+                summary.append(
+                    "You can view results directly in 3DBionotes at %s" % url)
         return summary
 
     def _methods(self):
         methods = []
 
         if self.isFinished():
-            methods.append("%s has been printed in this run %i times." % (self.message, self.times))
+            methods.append(
+                "%s has been printed in this run %i times." %
+                (self.message, self.times))
             if self.previousCount.hasPointer():
                 methods.append("Accumulated count from previous runs were %i."
                                " In total, %s messages has been printed."
