@@ -63,10 +63,12 @@ class BionotesProtocol(Protocol):
                       label='EM Volume', allowsNull=True, important=True,
                       help='Volume to be sent to 3DBionotes')
 
-        form.addParam('atomStructure', params.PointerParam, pointerClass="AtomStruct",
-                     label='Atomic structure', important=True, allowsNull=True,
+        form.addParam('atomStructure', params.PointerParam,
+                      pointerClass="AtomStruct",
+                      label='Atomic structure', important=True,
+                      allowsNull=True,
                       help='Atomic structure to be sent to 3DBionotes')
-        
+
     # --------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
         # Insert processing steps
@@ -80,57 +82,57 @@ class BionotesProtocol(Protocol):
         self.volumeMapId = String("")
         self.atomStructureId = String("")
 
-        #POST volumeMap
+        # POST volumeMap
         if self.emVolume.get():
             volumeMap = self.emVolume.get()
             vmFileName = volumeMap.getFileName()
-            vmFile = open(vmFileName ,'rb')
+            vmFile = open(vmFileName, 'rb')
             if vmFileName.endswith("map"):
                 # compress file
                 gzFileName = vmFileName + '.gz'
                 import gzip
                 with open(vmFileName, 'rb') as f_in, gzip.open(gzFileName, 'wb') as f_out:
                     f_out.write(f_in.read())
-                vmFile = open(gzFileName ,'rb')
+                vmFile = open(gzFileName, 'rb')
             # 3DBionotes will return a UUID
             resp = requests.post(WS_ROOT_URL + 'maps/', files={'file': vmFile},
-                                headers={"API-Token": API_KEY, 
-                                        "UAgent": SENDER,
-                                        "Title": vmFileName})
+                                 headers={"API-Token": API_KEY,
+                                          "UAgent": SENDER,
+                                          "Title": vmFileName})
             vmFile.close()
             if resp.status_code == 201:
                 uuid = resp.json()['unique_id']
                 self.volumeMapId = String(uuid)
             else:
-                raise Exception("HTTP Code:",resp.status_code, resp.reason)
+                raise Exception("HTTP Code:", resp.status_code, resp.reason)
         # self.volumeMapId = String("31c0b23b-150a-490e-a20c-9d51374ab057")
-        
+
         # POST atomStructure
         if self.atomStructure.get():
             pdbModel = self.atomStructure.get()
             asFileName = pdbModel.getFileName()
             assert asFileName.endswith('.cif')
-            asFile = open(asFileName ,'rb')
-            
+            asFile = open(asFileName, 'rb')
+
             # compress file
             gzFileName = asFileName + '.gz'
             import gzip
             with open(asFileName, 'rb') as f_in, gzip.open(gzFileName, 'wb') as f_out:
                 f_out.write(f_in.read())
-            asFile = open(gzFileName ,'rb')
+            asFile = open(gzFileName, 'rb')
             # 3DBionotes will return a UUID
-            resp = requests.post(WS_ROOT_URL + 'pdbs/', files={'file': asFile}, 
-                                headers={"API-Token": API_KEY, 
-                                        "UAgent": SENDER,
-                                        "Title": asFileName})
+            resp = requests.post(WS_ROOT_URL + 'pdbs/', files={'file': asFile},
+                                 headers={"API-Token": API_KEY,
+                                 "UAgent": SENDER,
+                                 "Title": asFileName})
             asFile.close()
             if resp.status_code == 201:
                 uuid = resp.json()['unique_id']
                 self.atomStructureId = String(uuid)
             else:
-                raise Exception("HTTP Code:",resp.status_code, resp.reason, resp.url)
+                raise Exception("HTTP Code:", resp.status_code, resp.reason, resp.url)
         # self.atomStructureId = String("cca40913-7079-408d-a84b-2c745d64b903")
-        
+
         # persist param values
         self._store()
 
@@ -138,14 +140,14 @@ class BionotesProtocol(Protocol):
 
         url = ""
         if self.volumeMapId != "":
-            url += WEBAPP_ROOT_URL +"?"
+            url += WEBAPP_ROOT_URL + "?"
             url += "volume_id=%s" % (self.volumeMapId)
-            
+
         if self.atomStructureId != "":
             if self.volumeMapId != "":
                 url += "&"
             else:
-                url += WEBAPP_ROOT_URL +"?"
+                url += WEBAPP_ROOT_URL + "?"
             url += "structure_id=%s" % (self.atomStructureId)
 
         return url
