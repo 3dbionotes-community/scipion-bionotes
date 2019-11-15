@@ -27,11 +27,23 @@
 from pyworkflow.object import String
 from pyworkflow.protocol import Protocol, params
 from pyworkflow.utils.properties import Message
+import requests
+import json
 
 """
 Describe your python module here:
 This module will provide the traditional Hello world example
 """
+
+
+WEBAPP_ROOT_URL = 'https://3dbionotes.cnb.csic.es/ws/submit'
+# WS_ROOT_URL = "http://campins:8700/"
+# WS_ROOT_URL = "http://rinchen-dos:8700/"
+WS_ROOT_URL = "http://localhost:8000/"
+
+API_KEY = "1731e131-b3bb-4fd4-217b-2d753e73447c"
+SENDER = "Scipion-EM-Bionotes"
+
 
 class BionotesProtocol(Protocol):
     """
@@ -47,14 +59,16 @@ class BionotesProtocol(Protocol):
         """
         # You need a params to belong to a section:
         form.addSection(label=Message.LABEL_INPUT)
-        form.addParam('inputVolume', params.PointerParam, pointerClass="Volume",
-                      label='Input Volume', allowsNull=True, important=True,
+        form.addParam('emVolume', params.PointerParam, pointerClass="Volume",
+                      label='EM Volume', allowsNull=True, important=True,
                       help='Volume to be sent to 3DBionotes')
 
-        form.addParam('atomStructure', params.PointerParam, pointerClass="AtomStruct",
-                     label='Atomic structure', important=True, allowsNull=True,
+        form.addParam('atomStructure', params.PointerParam,
+                      pointerClass="AtomStruct",
+                      label='Atomic structure', important=True,
+                      allowsNull=True,
                       help='Atomic structure to be sent to 3DBionotes')
-        
+
     # --------------------------- STEPS functions ------------------------------
     def _insertAllSteps(self):
         # Insert processing steps
@@ -65,28 +79,78 @@ class BionotesProtocol(Protocol):
         Query 3DBionotes WS: POST ...
         """
 
-        # POST de atomStructure
-        pdbModel = self.atomStructure.get()
-        pdbModelFileName = atomStructure.getFileName()
-        # 3DBionotes will return a UUID
-        # UUID = request(...)
-        # ...
-        self.atomStructureId = String("2d753e73-217b-4fd4-b3bb-1731e131447c")
+        self.volumeMapId = String("")
+        self.atomStructureId = String("")
 
-        #POST volume
-        volumeMap = self.inputVolume.get()
-        volumeMapFileName = volume.getFileName()
-        # 3DBionotes will return a UUID
-        # UUID = request(...)
-        # ...
-        self.volumeId = String("1fd5d9a1-986e-406d-9b4b-36b1e723fa07")
-        
+        # POST volumeMap
+        if self.emVolume.get():
+            volumeMap = self.emVolume.get()
+            vmFileName = volumeMap.getFileName()
+            vmFile = open(vmFileName, 'rb')
+            if vmFileName.endswith("map"):
+                # compress file
+                gzFileName = vmFileName + '.gz'
+                import gzip
+                with open(vmFileName, 'rb') as f_in, gzip.open(gzFileName, 'wb') as f_out:
+                    f_out.write(f_in.read())
+                vmFile = open(gzFileName, 'rb')
+            # 3DBionotes will return a UUID
+            resp = requests.post(WS_ROOT_URL + 'maps/', files={'file': vmFile},
+                                 headers={"API-Token": API_KEY,
+                                          "UAgent": SENDER,
+                                          "Title": vmFileName})
+            vmFile.close()
+            if resp.status_code == 201:
+                uuid = resp.json()['unique_id']
+                self.volumeMapId = String(uuid)
+            else:
+                raise Exception("HTTP Code:", resp.status_code, resp.reason)
+        # self.volumeMapId = String("31c0b23b-150a-490e-a20c-9d51374ab057")
+
+        # POST atomStructure
+        if self.atomStructure.get():
+            pdbModel = self.atomStructure.get()
+            asFileName = pdbModel.getFileName()
+            assert asFileName.endswith('.cif')
+            asFile = open(asFileName, 'rb')
+
+            # compress file
+            gzFileName = asFileName + '.gz'
+            import gzip
+            with open(asFileName, 'rb') as f_in, gzip.open(gzFileName, 'wb') as f_out:
+                f_out.write(f_in.read())
+            asFile = open(gzFileName, 'rb')
+            # 3DBionotes will return a UUID
+            resp = requests.post(WS_ROOT_URL + 'pdbs/', files={'file': asFile},
+                                 headers={"API-Token": API_KEY,
+                                 "UAgent": SENDER,
+                                 "Title": asFileName})
+            asFile.close()
+            if resp.status_code == 201:
+                uuid = resp.json()['unique_id']
+                self.atomStructureId = String(uuid)
+            else:
+                raise Exception("HTTP Code:", resp.status_code, resp.reason, resp.url)
+        # self.atomStructureId = String("cca40913-7079-408d-a84b-2c745d64b903")
+
         # persist param values
         self._store()
 
     def getResultsUrl(self):
 
-        return "https://3dbionotes.cnb.csic.es/ws/submit?volmap=%s&pdbstruct=%s" % (self.volumeId, self.atomStructureId)
+        url = ""
+        if self.volumeMapId != "":
+            url += WEBAPP_ROOT_URL + "?"
+            url += "volume_id=%s" % (self.volumeMapId)
+
+        if self.atomStructureId != "":
+            if self.volumeMapId != "":
+                url += "&"
+            else:
+                url += WEBAPP_ROOT_URL + "?"
+            url += "structure_id=%s" % (self.atomStructureId)
+
+        return url
 
     # --------------------------- INFO functions -----------------------------------
     def _summary(self):
@@ -95,7 +159,11 @@ class BionotesProtocol(Protocol):
 
         if self.isFinished():
 
-            summary.append("You can view results directly in 3DBionotes at %s" % self.getResultsUrl())
+            url = self.getResultsUrl()
+            if url == "":
+                summary.append("ERROR: Couldn't connect to 3DBionotes server %s" % WEBAPP_ROOT_URL)
+            else:
+                summary.append("You can view results directly in 3DBionotes at %s" % url)
         return summary
 
     def _methods(self):
