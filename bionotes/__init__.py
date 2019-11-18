@@ -39,7 +39,7 @@ class Plugin(pyworkflow.em.Plugin):
             "https://3dbionotes.cnb.csic.es/ws/submit")
         cls._defineVar(
             'BIONOTES_WS_ROOT_URL',
-            "http://3dbionotes.cnb.csic.es/ws/")
+            "https://3dbionotes.cnb.csic.es/ws/")
         cls._defineVar(
             'SENDER',
             "Scipion-EM-Bionotes")
