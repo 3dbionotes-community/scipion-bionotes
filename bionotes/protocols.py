@@ -28,6 +28,7 @@ from pyworkflow.object import String
 from pyworkflow.protocol import Protocol, params
 from pyworkflow.utils.properties import Message
 from bionotes import Plugin
+import os
 import requests
 import json
 import gzip
@@ -90,15 +91,16 @@ class BionotesProtocol(Protocol):
                     with gzip.open(gzFileName, 'wb') as f_out:
                         f_out.write(f_in.read())
                 # reopen gziped file for sending
-                vmFile = open(gzFileName, 'rb')
+                gzFile = open(gzFileName, 'rb')
             # 3DBionotes will return a UUID
             resp = requests.post(Plugin.getVar('BIONOTES_WS_ROOT_URL')+'maps/',
-                                 files={'file': vmFile},
+                                 files={'file': gzFile},
                                  headers={
                                      "API-Token": Plugin.getVar('API_KEY'),
                                      "Sender": Plugin.getVar('SENDER'),
-                                     "Title": os.path.basename(vmFileName)})
-            vmFile.close()
+                                     "Title": os.path.basename(gzFileName),
+                                     "Ori-Path": gzFileName})
+            gzFile.close()
             if resp.status_code == 201:
                 uuid = resp.json()['unique_id']
                 self.volumeMapId = String(uuid)
@@ -119,15 +121,16 @@ class BionotesProtocol(Protocol):
                 with gzip.open(gzFileName, 'wb') as f_out:
                     f_out.write(f_in.read())
             # reopen gziped file for sending
-            asFile = open(gzFileName, 'rb')
+            gzFile = open(gzFileName, 'rb')
             # 3DBionotes will return a UUID
             resp = requests.post(Plugin.getVar('BIONOTES_WS_ROOT_URL')+'pdbs/',
-                                 files={'file': asFile},
+                                 files={'file': gzFile},
                                  headers={
                                     "API-Token": Plugin.getVar('API_KEY'),
                                     "Sender":  Plugin.getVar('SENDER'),
-                                    "Title": os.path.basename(asFileName)})
-            asFile.close()
+                                    "Title": os.path.basename(gzFileName),
+                                    "Ori-Path": gzFileName})
+            gzFile.close()
             if resp.status_code == 201:
                 uuid = resp.json()['unique_id']
                 self.atomStructureId = String(uuid)
