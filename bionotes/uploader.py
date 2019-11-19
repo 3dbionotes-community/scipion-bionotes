@@ -1,22 +1,13 @@
+import os
 import pysftp
+from bionotes import Plugin
 
 
-class FileUploader():
+def sftp_uploader(filename):
+    sftp = pysftp.Connection(host=Plugin.getVar('FTP_HOST'),
+                             port=Plugin.getVar('FTP_PORT'),
+                             username=Plugin.getVar('FTP_USER'),
+                             password=self.Plugin.getVar('FTP_PASSWORD'))
 
-    FTP_HOST = "campins.cnb.csic.es"
-    FTP_PORT = "22722"
-    FTP_USER = "scipion"
-    FTP_PASSWORD = "change.me"
-
-    def file_uploader():
-        pass
-
-    def sftp_uploader(self, filename):
-        srv = pysftp.Connection(host=self.FTP_HOST, port=self.FTP_PORT,
-                                username=self.FTP_USER,
-                                password=self.FTP_PASSWORD)
-
-        srv.cd('upload')
-        srv.put(filename)
-        with srv.cd('upload'):
-            srv.put(filename)
+    with sftp.cd('upload'):
+        sftp.put(filename)
