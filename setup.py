@@ -25,7 +25,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='scipion-em-bionotes',  # Required
-    version='0.1.1',  # Required
+    version='0.1.2',  # Required
     description='Scipion 3DBionotes plugin.',  # Required
     long_description=long_description,  # Optional
     url='https://github.com/3dbionotes-community/scipion-bionotes',  # Optional
