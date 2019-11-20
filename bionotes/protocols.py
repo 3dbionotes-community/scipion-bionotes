@@ -88,7 +88,7 @@ class BionotesProtocol(Protocol):
                                      "API-Token": Plugin.getVar('API_KEY'),
                                      "Sender": Plugin.getVar('SENDER'),
                                      "Title": os.path.basename(filename),
-                                     "Ori-Path": filename})
+                                     "Ori-Path": filename}, verify=False)
             if resp.status_code == 201:
                 uuid = resp.json()['unique_id']
                 # upload file by FTP
@@ -96,7 +96,7 @@ class BionotesProtocol(Protocol):
                     try:
                         uploader.sftp_uploader(filename)
                     except Exception as exc:
-                        raise exc
+                        Exception(resp.status_code, resp.reason, resp.url)
                 self.volumeMapId = String(uuid)
             else:
                 raise Exception(resp.status_code, resp.reason, resp.url)
@@ -110,7 +110,7 @@ class BionotesProtocol(Protocol):
                                     "API-Token": Plugin.getVar('API_KEY'),
                                     "Sender":  Plugin.getVar('SENDER'),
                                     "Title": os.path.basename(filename),
-                                    "Ori-Path": filename})
+                                    "Ori-Path": filename}, verify=False)
             if resp.status_code == 201:
                 uuid = resp.json()['unique_id']
                 # upload file by FTP
@@ -118,7 +118,7 @@ class BionotesProtocol(Protocol):
                     try:
                         uploader.sftp_uploader(filename)
                     except Exception as exc:
-                        raise exc
+                        Exception(resp.status_code, resp.reason, resp.url)
                 self.atomStructureId = String(uuid)
             else:
                 raise Exception(resp.status_code, resp.reason, resp.url)
