@@ -45,7 +45,7 @@ class Plugin(pyworkflow.em.Plugin):
             "Scipion-EM-Bionotes")
         cls._defineVar(
             'API_KEY',
-            "1731e131-b3bb-4fd4-217b-2d753e73447c")
+            "")
 
         cls._defineVar(
             'FTP_HOST',
@@ -58,7 +58,7 @@ class Plugin(pyworkflow.em.Plugin):
             "scipion")
         cls._defineVar(
             'FTP_PASSWORD',
-            "1731e131-b3bb-4fd4-217b-2d753e73447c")
+            "")
 
 
 pyworkflow.em.Domain.registerPlugin(__name__)
